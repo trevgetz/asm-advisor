@@ -843,24 +843,33 @@ Return ONLY valid JSON, no preamble, no markdown:
   ]
 }`;
 
-  try {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' },"anthropic-dangerous-direct-browser-access": "true"
-      body: JSON.stringify({ model: 'claude-sonnet-4-20250514', max_tokens: 4000, messages: [{ role:'user', content: prompt }] })
-    });
-    const data = await res.json();
-    const text = data.content.map(b => b.text||'').join('');
-    const clean = text.replace(/```json|```/g,'').trim();
-    generatedData = JSON.parse(clean);
-    renderResults(generatedData);
-    btn.innerHTML = 'Regenerate ↗';
-    btn.disabled = false;
-  } catch(e) {
-    showBanner('Generation error: ' + e.message, 'error', 'teacher-banner');
-    btn.innerHTML = 'Generate projects &amp; groups ↗';
-    btn.disabled = false;
+try {
+  const res = await fetch(APPS_SCRIPT_URL, {
+    method: 'POST',
+    body: JSON.stringify({
+      action: 'generateProjects',
+      apiKey: apiKey,
+      students: students
+    })
+  });
+
+  const data = await res.json();
+
+  if (!data.ok) {
+    throw new Error(data.error + (data.details ? '\n\n' + data.details : ''));
   }
+
+  const text = data.result;
+  const clean = text.replace(/```json|```/g, '').trim();
+  generatedData = JSON.parse(clean);
+  renderResults(generatedData);
+
+  btn.innerHTML = 'Regenerate ↗';
+  btn.disabled = false;
+} catch(e) {
+  showBanner('Generation error: ' + e.message, 'error', 'teacher-banner');
+  btn.innerHTML = 'Generate projects &amp; groups ↗';
+  btn.disabled = false;
 }
 
 function renderResults(d) {
